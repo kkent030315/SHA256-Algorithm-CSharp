@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -68,6 +69,7 @@ namespace QuiitaSHA256
         public string ComputeHash(string plainText)
         {
             var p = Padding(plainText);
+
             var block_list = Parse(p);
             var s = new uint[8];
             Array.Copy(initial_hash, s, initial_hash.Length);
@@ -78,11 +80,15 @@ namespace QuiitaSHA256
 #endif
 
             //ブロック数分ループ
-            foreach (var blocks in block_list)
+            //foreach (var blocks in block_list)
             {
                 //ブロックリストの中のブロックにスコープを当てる
                 foreach(var block in block_list)
                 {
+                    Console.Write("BLOCK: ");
+                    PrintArray(block);
+                    Console.WriteLine(string.Join("", block));
+
                     var pair = MakePair(s);
                     var expanded_block = ExpandBlock(block);
 
@@ -145,20 +151,21 @@ namespace QuiitaSHA256
 
                 //コピー先のチャンク配列
                 uint[] chunk_array = new uint[32];
-                //ブロックから、 x*32 から 32先までをコピー
+                //ブロックの x*32 から 32byte先までをコピー
                 Array.Copy(block, x*32, chunk_array, 0, 32);
                 //バイナリに変換
                 var chunk_binary_str = ToBinary(chunk_array);
 
 #if DEBUG
-                Console.WriteLine("↓チャンク");
-                Console.WriteLine(chunk_binary_str);
+                //Console.Write($"チャンク [{x*32}-{(x*32)+32}] ");
+                Console.Write($"チャンク [{((x * 32) + 32).ToString().PadLeft(3, ' ')}] ");
+                Console.Write(chunk_binary_str);
 #endif
 
                 var chunk_demical = Convert.ToUInt32(chunk_binary_str, 2);
 
 #if DEBUG
-                Console.WriteLine(chunk_demical);
+                Console.Write(" : " + chunk_demical + "\n");
 #endif
 
                 result = Extend<uint>(result, chunk_demical);
@@ -273,32 +280,28 @@ namespace QuiitaSHA256
         /// </summary>
         /// <param name="plain_bits">分割する2進数配列</param>
         /// <returns>分割された2進数ブロック一覧を格納したジャグ配列</returns>
-        private uint[][] Parse(uint[] plain_bits)
+        private List<uint[]> Parse(uint[] plain_bits)
         {
+            var result = new List<uint[]>();
             const int BLOCK_SIZE = 512;
             var length = plain_bits.Length;
             var num_blocks = length / BLOCK_SIZE;
 
-            //ブロックを保持するジャグ配列
-            var blocks = new uint[num_blocks][];
-
             for(int n = 0; n < num_blocks; n++)
             {
                 var block = new uint[BLOCK_SIZE];
-                Array.Copy(plain_bits, block, BLOCK_SIZE);
+                Array.Copy(plain_bits, n * BLOCK_SIZE, block, 0, BLOCK_SIZE);
+                
                 //ブロックリストに追加
-                blocks[n] = block;
+                result.Add(block);
 
 #if DEBUG
-                Console.WriteLine("↓Copy");
+                Console.Write("ParsedBlock: ");
                 PrintArray(block);
-
-                Console.WriteLine("↓Blocks");
-                PrintArray(blocks[n]);
 #endif
             }
 
-            return blocks;
+            return result;
         }
 
         /// <summary>
@@ -316,10 +319,12 @@ namespace QuiitaSHA256
             uint[] buf = { };
 
             buf = Extend<uint>(plain_bits, 1);
+            //SelfAppend(ref buf, 1u);
 
             for(int r = 0; r < k; r++)
             {
-                buf = Extend<uint>(buf, 0);
+                //buf = Extend<uint>(buf, 0);
+                SelfAppend(ref buf, 0u);
             }
 
 #if DEBUG
@@ -332,6 +337,7 @@ namespace QuiitaSHA256
             //64桁右寄せゼロ埋め
             //0000000000000000000000000000000000000000000000000000000000011000
             bytStr = bytStr.ToString().PadLeft(64, '0');
+            Console.WriteLine("After PadLeft: " + bytStr.Length);
 
 #if DEBUG
             Console.WriteLine(bytStr.Length + " | " + bytStr);
@@ -339,18 +345,20 @@ namespace QuiitaSHA256
 
             //↑で得た64桁の数列を配列に変換
             //(64)[ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0 ]
-            uint[] bytStr_toArray = { };
+            uint[] bytStr_array = { };
             for(int x = 0; x <= 63; x++)
             {
                 var num_str = bytStr.Substring(x, 1);
                 var num = uint.Parse(num_str);
-                bytStr_toArray = Extend<uint>(bytStr_toArray, num);
+                SelfAppend(ref bytStr_array, num);
+                Console.Write("BytStrArr: ");
+                PrintArray(bytStr_array);
             }
 
             //位取り バッファにAppend
-            foreach(var b in bytStr_toArray)
+            foreach(var b in bytStr_array)
             {
-                buf = Extend<uint>(buf, b);
+                SelfAppend(ref buf, b);
             }
 
 #if DEBUG
@@ -390,6 +398,8 @@ namespace QuiitaSHA256
             //文字列を16進数に変換. 実体はbyte配列
             var a = Encoding.ASCII.GetBytes(plain_text);
 
+            PrintArray(a);
+
             //パディング結果を格納する配列
             uint[] result = { };
 
@@ -397,36 +407,38 @@ namespace QuiitaSHA256
             {
                 //16進数を2進数に変換
                 var j = int.Parse(Convert.ToString(n, 2));
+                var len = j.ToString().Length;
+                var fill_len = 0;
 
 #if DEBUG
                 Console.WriteLine("ToBits() : " + j);
 #endif
 
                 //2進数を8桁に揃える  0を先頭に追加
-                result = Extend<uint>(result, 0);
-                //8桁に揃えたものを配列化
-                for (int nb = 0; nb < 7; nb++)
+                if(len < 8)
                 {
-                    result = Extend(result, (uint)StrMid(j, nb));
+                    //2進数が8桁以下であったとき、埋めるべき数は |8 - len| である
+                    fill_len = Math.Abs(8 - len);
+                    while (fill_len > 0)
+                    {
+                        fill_len--;
+                        SelfAppend(ref result, 0u);
+                        //Console.Write("末端追加後: ");
+                        //PrintArray(result);
+                    }
                 }
+
+                SelfConcat(ref result, ToArray((uint)j));
+                //Console.Write("SelfConcat: ");
+                //PrintArray(result);
             }
 
 #if DEBUG
+            Console.WriteLine("↓ToUInt32Array()");
             PrintArray(result);
 #endif
 
             return result;
-        }
-
-        private void ExtendTestFunc()
-        {
-            //////////////////////////////////////////
-            // 拡張関数テスト
-            uint[] test = { 1 };
-            PrintArray(test); //before [ 1 ]
-            uint[] res = Extend<uint>(test, 3);
-            PrintArray(res); //after [ 1, 3 ]
-            //////////////////////////////////////////
         }
 
         /// <summary>
@@ -458,21 +470,53 @@ namespace QuiitaSHA256
             return result;
         }
 
-        //int文字列から特定の位置にある数字を取り出す
-        //12345
-        // ↑indexN
-        //return 2
+        private uint[] ToArray(uint num)
+        {
+            var s = num.ToString();
+            var l = s.Length;
+            var r = new uint[l];
+
+            //インデックスは0から始まるので初回の加算で1となるため -1 とする
+            int counter = -1;
+            foreach (var n in s)
+            {
+                counter++;
+                r[counter] = uint.Parse(n.ToString());
+            }
+
+            return r;
+        }
+
+        private void SelfAppend<T>(ref T[] source, T num)
+        {
+            source = source.Append(num).ToArray();
+        }
+
+        private void SelfConcat<T>(ref T[] source, T[] destination)
+        {
+            source = source.Concat(destination).ToArray();
+        }
+
         /// <summary>
         /// Integer から指定されたインデックスにある数値を取り出します。
         /// 12345678 の インデックス 5 の場合 返り値は 5 です。
         /// </summary>
         /// <param name="source">ソース元である数値</param>
-        /// <param name="indexN">インデックス</param>
+        /// <param name="indexN">0から始まるインデックス</param>
         /// <returns>取り出された数値</returns>
         private int StrMid(int source, int indexN)
         {
-            var s = source.ToString().Substring(indexN, 1);
-            return int.Parse(s);
+            var s = source.ToString();
+            var result = 0;
+            try
+            {
+                result = int.Parse(s.Substring(indexN, 1));
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"StrMid() Exception : {s}[{s.Length}] | {indexN}");
+            }
+            return result;
         }
 
         ////////////////////////////////////////////////////////////////////////
