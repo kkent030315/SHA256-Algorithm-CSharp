@@ -1,0 +1,9 @@
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\bin\Debug\QuiitaSHA256.exe.config
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\bin\Debug\QuiitaSHA256.exe
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\bin\Debug\QuiitaSHA256.pdb
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\obj\Debug\QuiitaSHA256.csprojAssemblyReference.cache
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\obj\Debug\QuiitaSHA256.Form1.resources
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\obj\Debug\QuiitaSHA256.Properties.Resources.resources
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\obj\Debug\QuiitaSHA256.csproj.GenerateResource.cache
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\obj\Debug\QuiitaSHA256.exe
+C:\Users\hrn83\source\repos\QuiitaSHA256\QuiitaSHA256\obj\Debug\QuiitaSHA256.pdb
