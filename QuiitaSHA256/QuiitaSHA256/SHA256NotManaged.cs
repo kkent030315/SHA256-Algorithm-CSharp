@@ -79,54 +79,50 @@ namespace QuiitaSHA256
             PrintArray(s); //(8)[ 1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225 ]
 #endif
 
-            //ブロック数分ループ
-            //foreach (var blocks in block_list)
+            //ブロックリストの中のブロックにスコープを当てる
+            foreach (var block in block_list)
             {
-                //ブロックリストの中のブロックにスコープを当てる
-                foreach(var block in block_list)
+                Console.Write("BLOCK: ");
+                PrintArray(block);
+                Console.WriteLine(string.Join("", block));
+
+                var pair = MakePair(s);
+                var expanded_block = ExpandBlock(block);
+
+                for (int n = 0; n < 64; ++n)
                 {
-                    Console.Write("BLOCK: ");
-                    PrintArray(block);
-                    Console.WriteLine(string.Join("", block));
+                    var CH = Ch(pair["e"], pair["f"], pair["g"]);
+                    var MAJ = Maj(pair["a"], pair["b"], pair["c"]);
+                    var SIG0 = Sigma0(pair["a"]);
+                    var SIG1 = Sigma1(pair["e"]);
 
-                    var pair = MakePair(s);
-                    var expanded_block = ExpandBlock(block);
+                    var WJ_KJ = (const_k[n] + expanded_block[n]);
+                    var T1_TEMP = (pair["h"] + WJ_KJ + CH);
+                    var T1 = (T1_TEMP + SIG1);
+                    var T2 = (SIG0 + MAJ);
 
-                    for (int n = 0; n < 64; ++n)
-                    {
-                        var CH = Ch(pair["e"], pair["f"], pair["g"]);
-                        var MAJ = Maj(pair["a"], pair["b"], pair["c"]);
-                        var SIG0 = Sigma0(pair["a"]);
-                        var SIG1 = Sigma1(pair["e"]);
+                    pair["h"] = pair["g"];
+                    pair["g"] = pair["f"];
+                    pair["f"] = pair["e"];
+                    pair["e"] = (pair["d"] + T1);
+                    pair["d"] = pair["c"];
+                    pair["c"] = pair["b"];
+                    pair["b"] = pair["a"];
+                    pair["a"] = (T1 + T2);
+                }
 
-                        var WJ_KJ = (const_k[n] + expanded_block[n]);
-                        var T1_TEMP = (pair["h"] + WJ_KJ + CH);
-                        var T1 = (T1_TEMP + SIG1);
-                        var T2 = (SIG0 + MAJ);
-
-                        pair["h"] = pair["g"];
-                        pair["g"] = pair["f"];
-                        pair["f"] = pair["e"];
-                        pair["e"] = (pair["d"] + T1);
-                        pair["d"] = pair["c"];
-                        pair["c"] = pair["b"];
-                        pair["b"] = pair["a"];
-                        pair["a"] = (T1 + T2);
-                    }
-
-                    s[0] = (pair["a"] + s[0]);
-                    s[1] = (pair["b"] + s[1]);
-                    s[2] = (pair["c"] + s[2]);
-                    s[3] = (pair["d"] + s[3]);
-                    s[4] = (pair["e"] + s[4]);
-                    s[5] = (pair["f"] + s[5]);
-                    s[6] = (pair["g"] + s[6]);
-                    s[7] = (pair["h"] + s[7]);
+                s[0] = (pair["a"] + s[0]);
+                s[1] = (pair["b"] + s[1]);
+                s[2] = (pair["c"] + s[2]);
+                s[3] = (pair["d"] + s[3]);
+                s[4] = (pair["e"] + s[4]);
+                s[5] = (pair["f"] + s[5]);
+                s[6] = (pair["g"] + s[6]);
+                s[7] = (pair["h"] + s[7]);
 
 #if DEBUG
-                    PrintArray(s); //[3128432319, 2399260650, 1094795486, 1571693091, 2953011619, 2518121116, 3021012833, 4060091821]
+                PrintArray(s); //[3128432319, 2399260650, 1094795486, 1571693091, 2953011619, 2518121116, 3021012833, 4060091821]
 #endif
-                }
             }
 
             return MakeHash(s);
@@ -162,13 +158,13 @@ namespace QuiitaSHA256
                 Console.Write(chunk_binary_str);
 #endif
 
-                var chunk_demical = Convert.ToUInt32(chunk_binary_str, 2);
+                var chunk_decimal = Convert.ToUInt32(chunk_binary_str, 2);
 
 #if DEBUG
-                Console.Write(" : " + chunk_demical + "\n");
+                Console.Write(" : " + chunk_decimal + "\n");
 #endif
 
-                result = Extend<uint>(result, chunk_demical);
+                SelfAppend(ref result, chunk_decimal);
             }
 
             for(int y = 16; y < 64; y++)
@@ -177,7 +173,7 @@ namespace QuiitaSHA256
                 var T2 = T1 + result[y - 7];
                 var T3 = T2 + Sub1(result[y - 2]);
 
-                result = Extend<uint>(result, T3);
+                SelfAppend(ref result, T3);
             }
 
 #if DEBUG
@@ -188,11 +184,11 @@ namespace QuiitaSHA256
         }
 
         /// <summary>
-        /// バイナリをデミカル Integer に変換します。
+        /// バイナリをデシマル Integer に変換します。
         /// </summary>
         /// <param name="binary_str">バイナリ</param>
-        /// <returns>デミカル Integer</returns>
-        private int BinaryToDemical(string binary_str)
+        /// <returns>デシマル Integer</returns>
+        private int BinaryToDecimal(string binary_str)
         {
             char[] binary_char_array = binary_str.ToCharArray();
             Array.Reverse(binary_char_array);
@@ -241,18 +237,8 @@ namespace QuiitaSHA256
         /// <returns>変換された文字列</returns>
         private string MakeHash(uint[] s)
         {
-            string result = "";
-
-            foreach(var v in s)
-            {
-                result += Convert.ToString((int)v, 16);
-            }
-
-#if DEBUG
-            Console.WriteLine("MakeHash() : " + result);
-#endif
-
-            return result;
+            var n = s.Select((v) => Convert.ToString(v, 16)).ToArray();
+            return string.Join("", n);
         }
 
         /// <summary>
@@ -319,11 +305,9 @@ namespace QuiitaSHA256
             uint[] buf = { };
 
             buf = Extend<uint>(plain_bits, 1);
-            //SelfAppend(ref buf, 1u);
 
             for(int r = 0; r < k; r++)
             {
-                //buf = Extend<uint>(buf, 0);
                 SelfAppend(ref buf, 0u);
             }
 
@@ -337,9 +321,9 @@ namespace QuiitaSHA256
             //64桁右寄せゼロ埋め
             //0000000000000000000000000000000000000000000000000000000000011000
             bytStr = bytStr.ToString().PadLeft(64, '0');
-            Console.WriteLine("After PadLeft: " + bytStr.Length);
 
 #if DEBUG
+            Console.WriteLine("After PadLeft: " + bytStr.Length);
             Console.WriteLine(bytStr.Length + " | " + bytStr);
 #endif
 
@@ -351,8 +335,10 @@ namespace QuiitaSHA256
                 var num_str = bytStr.Substring(x, 1);
                 var num = uint.Parse(num_str);
                 SelfAppend(ref bytStr_array, num);
+#if DEBUG
                 Console.Write("BytStrArr: ");
                 PrintArray(bytStr_array);
+#endif
             }
 
             //位取り バッファにAppend
