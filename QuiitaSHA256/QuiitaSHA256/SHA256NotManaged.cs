@@ -125,6 +125,11 @@ namespace QuiitaSHA256
 #endif
             }
 
+#if DEBUG
+            Console.Write("RESULT: ");
+            PrintArray(s);
+#endif
+
             return MakeHash(s);
         }
 
@@ -222,10 +227,13 @@ namespace QuiitaSHA256
         {
             string result = string.Empty;
 
-            foreach(var n in chunk)
+            foreach (var n in chunk)
             {
                 result += n.ToString();
             }
+
+            //ArgumentOutOfRangeException
+            //chunk.Select((v) => result += v.ToString());
 
             return result;
         }
@@ -237,8 +245,9 @@ namespace QuiitaSHA256
         /// <returns>変換された文字列</returns>
         private string MakeHash(uint[] s)
         {
-            var n = s.Select((v) => Convert.ToString(v, 16)).ToArray();
-            return string.Join("", n);
+            var s_byte_array = s.SelectMany((v) => BitConverter.GetBytes(v).Reverse()).ToArray();
+            var result_str = string.Join("", s_byte_array.Select(v => $"{v:X2}"));
+            return result_str.ToLower();
         }
 
         /// <summary>
@@ -384,7 +393,9 @@ namespace QuiitaSHA256
             //文字列を16進数に変換. 実体はbyte配列
             var a = Encoding.ASCII.GetBytes(plain_text);
 
+#if DEBUG
             PrintArray(a);
+#endif
 
             //パディング結果を格納する配列
             uint[] result = { };
@@ -409,14 +420,10 @@ namespace QuiitaSHA256
                     {
                         fill_len--;
                         SelfAppend(ref result, 0u);
-                        //Console.Write("末端追加後: ");
-                        //PrintArray(result);
                     }
                 }
 
                 SelfConcat(ref result, ToArray((uint)j));
-                //Console.Write("SelfConcat: ");
-                //PrintArray(result);
             }
 
 #if DEBUG
