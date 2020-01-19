@@ -274,7 +274,7 @@ namespace QuiitaSHA256
         /// パディングされた配列を512バイトのブロック長に分割します。
         /// </summary>
         /// <param name="plain_bits">分割する2進数配列</param>
-        /// <returns>分割された2進数ブロック一覧を格納したジャグ配列</returns>
+        /// <returns>分割された2進数ブロック一覧を格納したリスト</returns>
         private List<uint[]> Parse(uint[] plain_bits)
         {
             var result = new List<uint[]>();
