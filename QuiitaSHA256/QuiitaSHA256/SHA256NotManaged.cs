@@ -397,7 +397,7 @@ namespace QuiitaSHA256
             PrintArray(a);
 #endif
 
-            //パディング結果を格納する配列
+            //結果を格納する配列
             uint[] result = { };
 
             foreach (var n in a)
