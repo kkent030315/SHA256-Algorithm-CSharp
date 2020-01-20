@@ -68,10 +68,10 @@ namespace QuiitaSHA256
         /// <returns>暗号化された文字列</returns>
         public string ComputeHash(string plainText)
         {
-            var p = Padding(plainText);
+            var p           = Padding(plainText);
 
-            var block_list = Parse(p);
-            var s = new uint[8];
+            var block_list  = Parse(p);
+            var s           = new uint[8];
             Array.Copy(initial_hash, s, initial_hash.Length);
 
 #if DEBUG
@@ -82,24 +82,26 @@ namespace QuiitaSHA256
             //ブロックリストの中のブロックにスコープを当てる
             foreach (var block in block_list)
             {
+#if DEBUG
                 Console.Write("BLOCK: ");
                 PrintArray(block);
                 Console.WriteLine(string.Join("", block));
+#endif
 
-                var pair = MakePair(s);
-                var expanded_block = ExpandBlock(block);
+                var pair            = MakePair(s);
+                var expanded_block  = ExpandBlock(block);
 
                 for (int n = 0; n < 64; ++n)
                 {
-                    var CH = Ch(pair["e"], pair["f"], pair["g"]);
-                    var MAJ = Maj(pair["a"], pair["b"], pair["c"]);
-                    var SIG0 = Sigma0(pair["a"]);
-                    var SIG1 = Sigma1(pair["e"]);
+                    var CH      = Ch (pair["e"], pair["f"], pair["g"]);
+                    var MAJ     = Maj(pair["a"], pair["b"], pair["c"]);
+                    var SIG0    = Sigma0(pair["a"]);
+                    var SIG1    = Sigma1(pair["e"]);
 
-                    var WJ_KJ = (const_k[n] + expanded_block[n]);
+                    var WJ_KJ   = (const_k[n] + expanded_block[n]);
                     var T1_TEMP = (pair["h"] + WJ_KJ + CH);
-                    var T1 = (T1_TEMP + SIG1);
-                    var T2 = (SIG0 + MAJ);
+                    var T1      = (T1_TEMP + SIG1);
+                    var T2      = (SIG0 + MAJ);
 
                     pair["h"] = pair["g"];
                     pair["g"] = pair["f"];
@@ -412,7 +414,7 @@ namespace QuiitaSHA256
 #endif
 
                 //2進数を8桁に揃える  0を先頭に追加
-                if(len < 8)
+                if (len < 8)
                 {
                     //2進数が8桁以下であったとき、埋めるべき数は |8 - len| である
                     fill_len = Math.Abs(8 - len);
